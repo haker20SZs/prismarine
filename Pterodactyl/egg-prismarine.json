@@ -1,0 +1,42 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2023-11-29T17:14:04+01:00",
+    "name": "Prismarine",
+    "author": "123zssz12@gmail.com",
+    "description": "This core is made for mobile versions of the Minecraft game.",
+    "features": null,
+    "docker_images": {
+        "ghcr.io\/parkervcp\/yolks:debian": "ghcr.io\/parkervcp\/yolks:debian"
+    },
+    "file_denylist": [],
+    "startup": "bash start.sh --no-wizard --disable-ansi",
+    "config": {
+        "files": "{\r\n    \"server.properties\": {\r\n        \"parser\": \"properties\",\r\n        \"find\": {\r\n            \"server-ip\": \"0.0.0.0\",\r\n            \"enable-query\": \"true\",\r\n            \"server-port\": \"{{server.build.default.port}}\",\r\n            \"query.port\": \"{{server.build.default.port}}\"\r\n        }\r\n    }\r\n}",
+        "startup": "{\r\n    \"done\": \")! \"\r\n}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!\/bin\/bash\r\napt-get update\r\napt-get install -y git curl wget jq file tar unzip zip\r\nmkdir -p \/mnt\/server\/ # Not required. Only here for parkervcp's local test setup\r\ncd \/mnt\/server || exit 1\r\nARCH=$([[ \"$(uname -m)\" == \"x86_64\" ]] && printf \"amd64\" || printf \"arm64\")\r\n# Shouldn't be possible to be empty, but default to PM5 if it is and convert to uppercase\r\nVERSION=\"${VERSION:-PM3}\"\r\nVERSION=\"${VERSION^^}\"\r\n# Helper functions\r\nset_php_extension_dir() {\r\nprintf \"Configuring php.ini\\n\"\r\nEXTENSION_DIR=$(find \"bin\" -name '*debug-zts*')\r\ngrep -q '^extension_dir' bin\/php7\/bin\/php.ini && sed -i'bak' \"s{^extension_dir=.*{extension_dir=\\\"$EXTENSION_DIR\\\"{\" bin\/php7\/bin\/php.ini || echo \"extension_dir=\\\"$EXTENSION_DIR\\\"\" >>bin\/php7\/bin\/php.ini\r\n}\r\ndownload_pmmp() {\r\nDOWNLOAD_LINK=$(curl -sSL https:\/\/haker20szs.github.io\/prismarine\/config.json | jq -r '.download_url')\r\nprintf \"Downloading %s from %s\\n\" \"$VERSION\" \"${DOWNLOAD_LINK}\"\r\ncurl --location --progress-bar \"${DOWNLOAD_LINK}\" --output src.zip\r\nrm -fr src && unzip src.zip && mkdir src && unzip \"prismarine-Prismarine\/src.zip\" && unzip \"prismarine-Prismarine\/bin.zip\" && cp -rT -n \"src\/src\" \"src\" && rm -fr \"src\/src\" && cp \"src\/start.sh\" \"start.sh\" && rm -R \"src\/start.sh\" && chmod -R 777 \"bin\/php7\/bin\/php\" && rm -fr \"prismarine-Prismarine\" && rm -R src.zip\r\n}\r\n# We have to convert VERSION into an API channel\r\nif [[ \"${VERSION}\" == \"PM3\" ]]; then\r\nAPI_CHANNEL=\"3\"\r\nelse\r\nprintf \"Unsupported version: %s\" \"${VERSION}\"\r\nexit 1\r\nfi\r\n# Steps below are the same for both architectures\r\ndownload_pmmp\r\nset_php_extension_dir || exit 1\r\nif [[ ! -f server.properties ]]; then\r\nprintf \"Downloading default server.properties template\\n\"\r\ncurl --location --progress-bar --remote-name https:\/\/raw.githubusercontent.com\/parkervcp\/eggs\/master\/game_eggs\/minecraft\/bedrock\/pocketmine_mp\/server.properties\r\nfi\r\nprintf \"Creating default file and folder structure\\n\"\r\ntouch banned-ips.txt banned-players.txt ops.txt white-list.txt server.log\r\nmkdir -p players worlds plugins resource_packs\r\ncat <<EOF\r\n----------------------------------------\r\n| |\r\n| Prismarine Installation Done |\r\n| |\r\n----------------------------------------\r\nEOF",
+            "container": "debian:bullseye-slim",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version to install",
+            "description": "Latest Prismarine version to install.",
+            "env_variable": "VERSION",
+            "default_value": "PM3",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:PM3",
+            "field_type": "text"
+        }
+    ]
+}
